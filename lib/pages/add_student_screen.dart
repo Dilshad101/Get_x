@@ -7,10 +7,10 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:student_app/controllers/id_card_controller.dart';
 import 'package:student_app/controllers/student_controller.dart';
+import 'package:student_app/database/database_helper.dart';
 import 'package:student_app/model/student_model.dart';
 
 import '../widgets/text_widget.dart';
-
 
 class ScreenAddStudent extends StatelessWidget {
   ScreenAddStudent({super.key, this.student});
@@ -24,12 +24,12 @@ class ScreenAddStudent extends StatelessWidget {
   final batchController = TextEditingController();
   final regController = TextEditingController();
 
-  populateStudentDatas(){
-  nameController.text = student?.value.name??'';
-      ageController.text = student?.value.age.toString()??'';
-      batchController.text = student?.value.batch.toString()??'';
-      regController.text = student?.value.regnum.toString()??'';
-     idCardController.name.value=nameController.text;
+  populateStudentDatas() {
+    nameController.text = student?.value.name ?? '';
+    ageController.text = student?.value.age.toString() ?? '';
+    batchController.text = student?.value.batch.toString() ?? '';
+    regController.text = student?.value.regnum.toString() ?? '';
+    idCardController.name.value = nameController.text;
   }
 
   @override
@@ -113,14 +113,19 @@ class ScreenAddStudent extends StatelessWidget {
     int? ag = int.tryParse(age);
     int? bh = int.tryParse(batch);
     int? rg = int.tryParse(reg);
+    final std = Student(age: ag!, batch: bh!, name: name, regnum: rg!).obs;
     if (student == null) {
-      final student =
-          Student(age: ag!, batch: bh!, name: name, regnum: rg!).obs;
-      studentController.addStd(student);
+     
+    final rxStudent= await DatabaseHelper.instence.addToStudentTable(std.value);
+       studentController.addStudent(rxStudent);
+       
     } else {
-      student!.update((std) {
-        std!.name = name;
+      student!.update((student) {
+        student!.name = name;
+        student.age=ag;
       });
+      std.value.id = student!.value.id;
+      DatabaseHelper.instence.updateStudent(student!.value);
     }
     idCardController.clearFields();
     Get.back();
@@ -128,11 +133,8 @@ class ScreenAddStudent extends StatelessWidget {
 
   getImage() async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-
     if (image != null) {
-   
-        profileImage = File(image.path);
-
+      profileImage = File(image.path);
     }
   }
 }

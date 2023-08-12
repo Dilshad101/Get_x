@@ -20,7 +20,6 @@ class MyApp extends StatelessWidget {
       initialBinding: Init(),
       home: const ScreenHome(),
       debugShowCheckedModeBanner: false,
-      defaultTransition: Transition.zoom,
       theme: ThemeData.light().copyWith(
         primaryColor: Colors.grey.shade700,
           appBarTheme:  AppBarTheme(backgroundColor: Colors.grey.shade700)),

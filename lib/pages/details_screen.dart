@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/controllers/student_controller.dart';
+import 'package:student_app/database/database_helper.dart';
 import 'package:student_app/model/student_model.dart';
 import 'package:student_app/pages/add_student_screen.dart';
 
@@ -19,6 +20,7 @@ class ScreenDetails extends StatelessWidget {
               onPressed: () {
                 // Get.find<ListController>().deleteStudent(index);
                 studentController.deleteStudent(index);
+                DatabaseHelper.instence.deleteStudent(student.value.id!);
                 Get.back();
               },
               icon: const Icon(Icons.delete)),
@@ -34,10 +36,8 @@ class ScreenDetails extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              student.value.name
-              // studentController.name.value
-              ,
-              style: TextStyle(fontSize: 20, color: Colors.amber),
+              student.value.name,
+              style: const TextStyle(fontSize: 20, color: Colors.amber),
             ),
           ],
         ),
