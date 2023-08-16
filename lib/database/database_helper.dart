@@ -30,9 +30,10 @@ class DatabaseHelper {
       CREATE TABLE $_tbName (
         id INTEGER PRIMARY KEY,
         name TEXT,
-        age  INTEGER,
-        batch INTEGER,
-        regnum INTEGER
+        age  TEXT,
+        batch TEXT,
+        regnum TEXT,
+        imagePath TEXT
       )
     ''');
   }

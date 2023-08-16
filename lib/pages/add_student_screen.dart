@@ -4,12 +4,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:student_app/controllers/id_card_controller.dart';
 import 'package:student_app/controllers/student_controller.dart';
 import 'package:student_app/database/database_helper.dart';
 import 'package:student_app/model/student_model.dart';
 
+import '../widgets/id_card_widget.dart';
+import '../widgets/snackbar_widget.dart';
 import '../widgets/text_widget.dart';
 
 class ScreenAddStudent extends StatelessWidget {
@@ -23,14 +24,7 @@ class ScreenAddStudent extends StatelessWidget {
   final ageController = TextEditingController();
   final batchController = TextEditingController();
   final regController = TextEditingController();
-
-  populateStudentDatas() {
-    nameController.text = student?.value.name ?? '';
-    ageController.text = student?.value.age.toString() ?? '';
-    batchController.text = student?.value.batch.toString() ?? '';
-    regController.text = student?.value.regnum.toString() ?? '';
-    idCardController.name.value = nameController.text;
-  }
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
@@ -44,29 +38,19 @@ class ScreenAddStudent extends StatelessWidget {
           },
           icon: const Icon(Icons.arrow_back),
         ),
-        title: const Text('New Student'),
+        title: Text(student == null ? 'New Student' : 'Edit Student'),
         elevation: 0,
       ),
-      body: Center(
+      body: Form(
+        key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
           children: [
+            //Id Card
+            IdCard(
+              profileImage: profileImage,
+            ),
             const SizedBox(height: 30),
-            SizedBox(
-              height: 100,
-              child: Obx(() => Text(idCardController.name.value)),
-            ),
-            GestureDetector(
-              onTap: getImage,
-              child: CircleAvatar(
-                radius: 70,
-                backgroundImage: profileImage == null
-                    ? null
-                    : FileImage(File(profileImage!.path)),
-                child: profileImage == null ? const Text('Add Photo') : null,
-              ),
-            ),
-            const SizedBox(height: 20),
             CustomTextField(
               controller: nameController,
               label: 'Name',
@@ -74,29 +58,63 @@ class ScreenAddStudent extends StatelessWidget {
               onChanged: (value) {
                 idCardController.updateName(value);
               },
+              validator: (value) {
+                if (value.toString().isEmpty) {
+                  return 'Please Enter Student Name';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 20),
             CustomTextField(
               controller: ageController,
               label: 'Age',
               type: TextInputType.number,
-            ),
-            const SizedBox(height: 20),
-            CustomTextField(
-              controller: regController,
-              label: 'Register Number',
-              type: TextInputType.number,
+              onChanged: (value) {
+                idCardController.updateAge(value);
+              },
+              validator: (value) {
+                if (value.toString().isEmpty) {
+                  return 'Please Enter Age';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 20),
             CustomTextField(
               controller: batchController,
               label: 'Batch',
               type: TextInputType.number,
+              onChanged: (value) {
+                idCardController.updateBatch(value);
+              },
+              validator: (value) {
+                if (value.toString().isEmpty) {
+                  return 'Please Enter Batch';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+            CustomTextField(
+              controller: regController,
+              label: 'Register Number',
+              type: TextInputType.number,
+              onChanged: (value) {
+                idCardController.updateregNum(value);
+              },
+              validator: (value) {
+                if (value.toString().isEmpty) {
+                  return 'Please Enter  RegisterNumber';
+                }
+                return null;
+              },
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xff333F63),
         onPressed: () {
           addStudent();
         },
@@ -106,35 +124,70 @@ class ScreenAddStudent extends StatelessWidget {
   }
 
   addStudent() async {
-    final name = nameController.text;
-    final age = ageController.text;
-    final batch = batchController.text;
-    final reg = regController.text;
-    int? ag = int.tryParse(age);
-    int? bh = int.tryParse(batch);
-    int? rg = int.tryParse(reg);
-    final std = Student(age: ag!, batch: bh!, name: name, regnum: rg!).obs;
-    if (student == null) {
-     
-    final rxStudent= await DatabaseHelper.instence.addToStudentTable(std.value);
-       studentController.addStudent(rxStudent);
-       
-    } else {
-      student!.update((student) {
-        student!.name = name;
-        student.age=ag;
-      });
-      std.value.id = student!.value.id;
-      DatabaseHelper.instence.updateStudent(student!.value);
+    if (idCardController.imagePath.value.trim().isEmpty) {
+      customSnackbar(
+        title: 'Warning',
+        subtitle: 'Please Provide Student Photo',
+      );
+      return;
     }
-    idCardController.clearFields();
-    Get.back();
+    if (_formKey.currentState!.validate()) {
+      final name = nameController.text;
+      final age = ageController.text;
+      final batch = batchController.text;
+      final reg = regController.text;
+      final imagePath = idCardController.imagePath.value;
+
+      final newStudent = Student(
+              age: age,
+              batch: batch,
+              name: name,
+              regnum: reg,
+              imagePath: imagePath)
+          .obs;
+      if (student == null) {
+        final rxStudent =
+            await DatabaseHelper.instence.addToStudentTable(newStudent.value);
+        studentController.addStudent(rxStudent);
+        Get.back();
+        customSnackbar(
+            title: 'Success',
+            subtitle: 'Student added Successfully',
+            isError: false);
+      } else {
+        student!.update((student) {
+          student!.name = name;
+          student.age = age;
+          student.batch = batch;
+          student.regnum = reg;
+          student.imagePath = imagePath;
+        });
+        newStudent.value.id = student!.value.id;
+        DatabaseHelper.instence.updateStudent(student!.value);
+        
+       Get.back();
+       customSnackbar(
+            title: 'Success',
+            subtitle: 'Student Updated Successfully',
+            isError: false);
+      }
+      idCardController.clearFields();
+    }
   }
 
-  getImage() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      profileImage = File(image.path);
+  populateStudentDatas() {
+    nameController.text = student?.value.name ?? '';
+    ageController.text = student?.value.age.toString() ?? '';
+    batchController.text = student?.value.batch.toString() ?? '';
+    regController.text = student?.value.regnum.toString() ?? '';
+    idCardController.name.value =
+        nameController.text.isEmpty ? 'Name' : nameController.text;
+    idCardController.age.value = ageController.text;
+    idCardController.batch.value = batchController.text;
+    idCardController.regNum.value = regController.text;
+    if (student != null) {
+      profileImage = File(student!.value.imagePath);
+      idCardController.addImage(profileImage!.path);
     }
   }
 }
